@@ -54,25 +54,28 @@ class BaseModel(PydanticBaseModel):
                                     break
                                     # fields_values[name] = sub_field.outer_type_(**values[name])
                     # List of models
-                    elif issubclass(field.type_, PydanticBaseModel):
-                        fields_values[name] = [field.type_.construct(**element) for element in values[name]]
-                    # Just a list
                     else:
                         try:
-                            fields_values[name] = [parsers[field.type_](**element) for element in values[name]]
-                        except (ValueError, KeyError):
+                            # List of models
+                            if issubclass(field.type_, PydanticBaseModel):
+                                # Will raise TypeError
+                                fields_values[name] = [field.type_.construct(**element) for element in values[name]]
+                            # List of parsed-types
+                            else:
+                                # Will raise KeyError if parser doesn't exist
+                                fields_values[name] = [parsers[field.type_](**element) for element in values[name]]
+                        # List of plain types
+                        except (ValueError, KeyError, TypeError):
                             fields_values[name] = values[name]
-                elif field.shape == SHAPE_GENERIC:
-                    pass
-                # Field is Model
-                elif issubclass(field.type_, PydanticBaseModel):
-                    temp = field.outer_type_.construct(**values[name], __recursive__=True)
-                    fields_values[name] = temp
-                # Field is simple value
                 else:
                     try:
-                        fields_values[name] = parsers[field.type_](values[name])
-                    except (ValueError, KeyError) as ex:
+                        # Field if model
+                        if issubclass(field.type_, PydanticBaseModel):
+                            fields_values[name] = field.type_.construct(**values[name])
+                        # List of parsed-types
+                        else:
+                            fields_values[name] = parsers[field.type_](values[name])
+                    except (ValueError, KeyError, TypeError) as ex:
                         fields_values[name] = values[name]
 
             elif not field.required:

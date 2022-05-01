@@ -1,5 +1,5 @@
 import datetime
-from typing import Union, List, Generic, TypeVar, Optional, Type, Any
+from typing import Union, List, Generic, TypeVar, Optional, Any
 
 from pydantic.generics import GenericModel
 
@@ -236,3 +236,28 @@ def test_list_complex_generic():
     assert _complex.lst[0].data.number == 1
     assert _complex.lst[1].data.number == 2
     assert _complex.lst[0].data.dict() == {'number': 1}
+
+
+def test_special_form_type_any():
+    class Model(BaseModel):
+        field_any: Any
+        field_list_any: List[Any]
+
+    model = Model.construct(field_any=5, field_list_any=[1, 2])
+
+    assert model.field_any == 5
+    assert isinstance(model.field_list_any, list)
+    assert len(model.field_list_any) == 2
+    assert model.field_list_any[0] == 1
+    assert model.field_list_any[1] == 2
+
+
+def test_special_form_type_optional():
+    class Model(BaseModel):
+        optional: Optional[str]
+
+    model = Model.construct(optional='Hello World')
+    empty = Model.construct()
+
+    assert model.optional == 'Hello World'
+    assert empty.optional is None
